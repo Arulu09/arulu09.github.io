@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Drive Grid</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body { background: #ffffff; }
+
+    .grid {
+      columns: 4;
+      column-gap: 0;
+    }
+
+    .grid-item {
+      break-inside: avoid;
+      display: block;
+      line-height: 0; /* kills whitespace gap below images */
+    }
+
+    .grid-item img {
+      display: block;
+      width: 100%;
+      height: auto; /* ← preserves original aspect ratio */
+    }
+
+    @media (max-width: 900px) { .grid { columns: 2; } }
+    @media (max-width: 500px) { .grid { columns: 1; } }
+  </style>
+</head>
+<body>
+  <div class="grid" id="grid"></div>
+
+  <script>
+    const API_KEY   = 'AIzaSyAp9YsnEbEdzeAN-X5wPWp4ngDLPNNUP_c';
+    const FOLDER_ID = '1cttibL_4hwuaM4DKyg66ZF54EfP99bnr';
+
+    async function init() {
+      const url = `https://www.googleapis.com/drive/v3/files`
+        + `?q='${FOLDER_ID}'+in+parents`
+        + `&fields=files(id,name,mimeType,thumbnailLink,imageMediaMetadata)`
+        + `&pageSize=100`
+        + `&key=${API_KEY}`;
+
+      const res  = await fetch(url);
+      const data = await res.json();
+      const grid = document.getElementById('grid');
+
+      data.files
+        .filter(f => f.mimeType.startsWith('image/'))
+        .forEach(file => {
+          const item = document.createElement('div');
+          item.className = 'grid-item';
+
+          const img = document.createElement('img');
+
+          // Use full-res image (requires auth) or thumbnailLink (public)
+          img.src = file.thumbnailLink?.replace('=s220', '=s0') // s0 = original size
+                 ?? `https://drive.google.com/uc?id=${file.id}`;
+
+          // Set width/height attributes to prevent layout shift
+          const meta = file.imageMediaMetadata;
+          if (meta?.width && meta?.height) {
+            img.width  = meta.width;
+            img.height = meta.height;
+          }
+
+          img.alt = file.name;
+          img.loading = 'lazy';
+
+          item.appendChild(img);
+          grid.appendChild(item);
+        });
+    }
+
+    init();
+  </script>
+</body>
+</html>
